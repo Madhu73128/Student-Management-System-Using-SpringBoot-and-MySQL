@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Management System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container
+        {
+            display: flex;
+            width: 80%;
+            max-width: 1200px;
+            background: white;
+            padding: 20px;
+            box-shadow: 0 0 10px #ccc;
+            border-radius: 10px;
+            align-items: stretch; /* Ensures both sections grow together */
+        }
+
+        /* Left Section - Form */
+        .form-container
+        {
+            flex: 1; /* Allows it to grow */
+            padding: 20px;
+            background: #e6f2ff;
+            border-radius: 10px;
+            margin-right: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 300px; /* Allows it to expand when needed */
+        }
+
+        h2 {
+            color: #00509E;
+            text-align: center;
+        }
+
+        form {
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #00509E;
+            border-radius: 5px;
+        }
+
+        button {
+            background-color: #00509E;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: #003f7f;
+        }
+
+        .reset-btn {
+            background-color: #ff9800;
+        }
+
+        .reset-btn:hover {
+            background-color: #e68900;
+        }
+
+        /* Right Section - Student List */
+        .table-container
+         {
+            flex: 2;
+            max-height: 500px; /* Limit the height */
+            overflow-y: auto; /* Enable scroll when the list grows */
+         }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid #ccc;
+            text-align: center;
+        }
+
+        th {
+            background-color: #00509E;
+            color: white;
+        }
+
+        .edit-btn {
+            background-color: #ffa500;
+            padding: 5px;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+
+        .delete-btn {
+            background-color: #d9534f;
+            padding: 5px;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+
+        .edit-btn:hover {
+            background-color: #cc8400;
+        }
+
+        .delete-btn:hover {
+            background-color: #c9302c;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+                width: 90%;
+            }
+
+            .form-container {
+                margin-right: 0;
+                margin-bottom: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Left: Student Form -->
+    <div class="form-container">
+        <h2>Student Management System</h2>
+        <form id="studentForm">
+            <input type="hidden" id="studentId">
+            <label>Name: <input type="text" id="name" required></label>
+            <label>Email: <input type="email" id="email" required></label>
+            <label>Address: <input type="text" id="address" required></label>
+            <button type="submit">Save</button>
+            <button type="button" class="reset-btn" onclick="resetForm()">Reset</button>
+        </form>
+    </div>
+
+    <!-- Right: Student List -->
+    <div class="table-container">
+        <h2>Students List</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Address</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody id="studentsTable"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const apiUrl = "https://2ae0-2409-40f0-109-32ec-cce9-aa5b-cacf-5cc9.ngrok-free.app/api/v1/students";
+
+    function fetchStudents() {
+        fetch(apiUrl + "/read")
+            .then(res => res.json())
+            .then(data => {
+                const table = document.getElementById("studentsTable");
+                table.innerHTML = "";
+                data.forEach(student => {
+                    table.innerHTML += `
+                        <tr>
+                            <td>${student.id}</td>
+                            <td>${student.studentName}</td>
+                            <td>${student.studentEmail}</td>
+                            <td>${student.studentAddress}</td>
+                            <td>
+                                <button class="edit-btn" onclick="editStudent(${student.id}, '${student.studentName}', '${student.studentEmail}', '${student.studentAddress}')">Edit</button>
+                                <button class="delete-btn" onclick="deleteStudent(${student.id})">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            })
+            .catch(error => console.error("Error fetching students:", error));
+    }
+
+    document.getElementById("studentForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        const id = document.getElementById("studentId").value;
+        const student = {
+            id: id ? parseInt(id) : 0,
+            studentName: document.getElementById("name").value,
+            studentEmail: document.getElementById("email").value,
+            studentAddress: document.getElementById("address").value
+        };
+
+        fetch(apiUrl + (id ? `/update/${id}` : "/create"), {
+            method: id ? "PUT" : "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(student)
+        })
+        .then(res => {
+            if (!res.ok) return res.text().then(text => { throw new Error(text); });
+            return res.json();
+        })
+        .then(() => {
+            fetchStudents();
+            resetForm();
+        })
+        .catch(error => alert("Error: " + error.message));
+    });
+
+    function editStudent(id, name, email, address) {
+        document.getElementById("studentId").value = id;
+        document.getElementById("name").value = name;
+        document.getElementById("email").value = email;
+        document.getElementById("address").value = address;
+    }
+
+    function deleteStudent(id) {
+        if (confirm("Are you sure you want to delete this student?")) {
+            fetch(apiUrl + `/delete/${id}`, { method: "DELETE" })
+                .then(() => fetchStudents())
+                .catch(error => console.error("Error deleting student:", error));
+        }
+    }
+
+    function resetForm() {
+        document.getElementById("studentForm").reset();
+        document.getElementById("studentId").value = "";
+    }
+
+    fetchStudents();
+</script>
+
+</body>
+</html>
